@@ -22,15 +22,16 @@ int main(int argc, char *argv[])
 {
     int r = -1; //we don't have 'r'
     int p = -1; //we don't have 'p'
+    int isPort = -1;
+    int isPath = -1;
     char *path;
     char *host;
     char *port;
     /* CHECK IT HERE*/
-    char *parameter = (char *)malloc(sizeof(char) * 200); //with &
+    char *parameter = (char *)malloc(sizeof(char) * 1020); //with &
     char *txt;
-    char *buf; //the get or post request
-    int isPort = -1;
-    int intPort= 80 ; 
+    char *buf = (char *)malloc(sizeof(char) * 1020); //the get or post request
+    int intPort = 80;
 
     for (int i = 1; i < argc; i++) /*for loop on all the string i = 1  -> bcz 0 is ./client*/
     {
@@ -38,10 +39,10 @@ int main(int argc, char *argv[])
         char *token;
         char *rest = (char *)malloc(sizeof(char) * inputLen);
         strcpy(rest, argv[i]);
-        char *ptr = strstr(rest, "https://"); //check if it has "https://" in the
+        char *ptr = strstr(rest, "http://"); //check if it has "https://" in the
         if (ptr != NULL)
         {
-            ptr = (ptr + 8);
+            ptr = (ptr + 7);
             host = ptr; //we have just the hos
 
             char *secPtr = strstr(ptr, ":");
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
                 host = secPtr - ptr; //this is 14 i should just copy 14 char s
                 int num = (int *)host;
                 host = (char *)malloc(num);
-                strncpy(host, ptr, num - 1);
+                strncpy(host, ptr, num); //-1
                 port = (char *)malloc(strlen(secPtr));
                 strncpy(port, secPtr, strlen(secPtr) - 1);
             }
@@ -63,27 +64,32 @@ int main(int argc, char *argv[])
             char *thrdPtr = strstr(secPtr, "/");
             if (thrdPtr != NULL) //there is a path
             {
+                isPath = 1;
                 path = thrdPtr;
                 if (isPort == 1)
                 {
                     int num1 = thrdPtr - secPtr;
                     port = (char *)malloc(num1);
-                    strncpy(port, secPtr, num1 );
+                    strncpy(port, secPtr, num1);
                 }
                 else
                 {
                     host = thrdPtr - ptr;
                     int num = (int *)host;
                     host = (char *)malloc(num);
-                    strncpy(host, ptr, num - 1);
-                    printf("the hos is:%s", host);
+                    strncpy(host, ptr, num); //-1
                 }
             }
             else //there isn't a path
             {
+                path = (char *)malloc(1); //i should make malloc
+                strcpy(path, "/");
             }
-            printf("the host is:%s\n", host);
-            printf("the port is:%s\n", port);
+            if (host != NULL)
+                printf("the host is:%s\n", host);
+            if (isPort != -1)
+                printf("the port is:%s\n", port);
+
             printf("the path is:%s\n", path);
 
             continue; // we have finished testing the argv[i] go to the second
@@ -103,6 +109,7 @@ int main(int argc, char *argv[])
                 strcpy(rest, argv[i + 1]);
                 i = i + 1; //discard the text of the  -p
                 printf("%s\n", rest);
+                txt = rest ; ///////////////////////
             }
             else
             {
@@ -132,6 +139,7 @@ int main(int argc, char *argv[])
 
                     if (j == 0)
                     {
+                        strcat(parameter, "?");
                         strcat(parameter, argv[i + 1]);
                     }
                     else
@@ -140,15 +148,15 @@ int main(int argc, char *argv[])
                         strcat(parameter, argv[i + 1]);
                     }
                 }
-                printf("%s\n", parameter);
             }
         }
-        else
-        {
-        }
     }
-    intPort = atoi(port);
-    
+
+    if (isPort != -1)
+    {
+        intPort = atoi(port);
+    }
+
     int reqSize; // the size of the request malloc
 
     char *request; //i should malloc to the request the size of it should be the equal to the bottom -> make it geniric  .
@@ -174,6 +182,7 @@ int main(int argc, char *argv[])
 
     // connect to server
     server = gethostbyname(host); //put the IP here
+    //printf("\nww%sww",host);
     if (server == NULL)
     {
         fprintf(stderr, "ERROR, no such host\n");
@@ -185,45 +194,52 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(intPort); //put the port here
 
     rc = connect(sockfd, (const struct sockaddr *)&serv_addr, sizeof(serv_addr));
-   
+
     if (rc < 0)
         error("connect failed:");
     else
     {
-        printf("connected");
+        printf("connected\n");
     }
 
-    /*
-    while (1)
-    { //you should build a http request here   //we make a concatinate if it get or post then ....
-        //rbuf is a the http massage-> GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
-        //this should be the massage thn we write the rbuf to the server ""but i should make it geniric ""
-        //make a function httpRequest(rbuf,argv);
-        puts("enter a number");
-        scanf("%d", &num);
-        if (!num)
-            break;
-        sprintf(rbuf, "%d", num);
-        //before the write i should print the request "the get request "
-        // send and then receive messages from the server
-        write(sockfd, rbuf, strlen(rbuf) + 1); //send the massage to the server -> socket
-                                               // for(){} , here we should read the massage using a loop
-        do
-        {
-            rc = read(sockfd, rbuf, BUFLEN); //read from the sever the massage
-            if (rc > 0)
-            { //i should to the rbuf in the place of rc rbuf[rc]= '\0'
-                printf("%s\n", rbuf);
-                rbuf[rc] = '\0';
-            }
-            else
-                error("read() failed");
-            //here the end of the for
-        } while (rc > 0);
+    if (p == -1) //get request
+    {
+        strcat(buf, "GET ");
     }
+    else
+    {
+        strcat(buf, "POST "); //shof al text
+    }
+    strcat(buf, path);
+    strcat(buf, parameter);
+    strcat(buf, " HTTP/1.0\r\nHost: ");
+    strcat(buf, host);
+    strcat(buf, "\r\n\r\n");
+    printf("%s", buf);
+    //you should build a http request here   //we make a concatinate if it get or post then ....
+    //rbuf is a the http massage-> GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
+    //this should be the massage thn we write the rbuf to the server ""but i should make it geniric ""
+    //make a function httpRequest(rbuf,argv);
+
+    //before the write i should print the request "the get request "
+    // send and then receive messages from the server
+  //  strcpy(buf,"GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n");
+    write(sockfd, buf, strlen(buf) + 1); //send the massage to the server -> socket
+    // for(){} , here we should read the massage using a loop
+    do
+    {
+        rc = read(sockfd, rbuf, BUFLEN); //read from the sever the massage
+        if (rc > 0)
+        { //i should to the rbuf in the place of rc rbuf[rc]= '\0'
+            printf("%s\n", rbuf);
+            rbuf[rc] = '\0';
+        }
+        else
+            error("read() failed");
+        //here the end of the for
+    } while (rc > 0);
 
     close(sockfd);
 
     return EXIT_SUCCESS;
-    */
 }
