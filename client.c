@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
                 strcpy(rest, argv[i + 1]);
                 i = i + 1; //discard the text of the  -p
                 printf("%s\n", rest);
-                txt = rest ; ///////////////////////
+                txt = rest; ///////////////////////
             }
             else
             {
@@ -214,8 +214,25 @@ int main(int argc, char *argv[])
     strcat(buf, parameter);
     strcat(buf, " HTTP/1.0\r\nHost: ");
     strcat(buf, host);
+    // if(p != -1){
+    //     strcat(buf , )
+    // }
+    if (p != -1)
+    {
+        strcat(buf, "\r\n");
+        strcat(buf,"Content-length:");
+        char h [strlen(txt)] ; 
+        sprintf(h,"%d" , strlen(txt));
+        strcat(buf,h  );
+
+    }
     strcat(buf, "\r\n\r\n");
-    printf("%s", buf);
+    if (p != -1)
+    {
+        strcat(buf, txt);
+    }
+    
+    printf("\n%s\n", buf);
     //you should build a http request here   //we make a concatinate if it get or post then ....
     //rbuf is a the http massage-> GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
     //this should be the massage thn we write the rbuf to the server ""but i should make it geniric ""
@@ -223,7 +240,7 @@ int main(int argc, char *argv[])
 
     //before the write i should print the request "the get request "
     // send and then receive messages from the server
-  //  strcpy(buf,"GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n");
+    //  strcpy(buf,"GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n");
     write(sockfd, buf, strlen(buf) + 1); //send the massage to the server -> socket
     // for(){} , here we should read the massage using a loop
     do
