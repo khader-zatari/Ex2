@@ -21,24 +21,29 @@ void error(char *str)
 
 int main(int argc, char *argv[])
 {
-    int r = -1; //we don't have 'r'
-    int p = -1; //we don't have 'p'
-    int isPort = -1;
-    int isPath = -1;
+    if (argc <= 1)
+    {
+        fprintf(stderr, "Missing server name \n");
+        exit(EXIT_FAILURE);
+    }
+    int r = -1;      //we don't have 'r'
+    int p = -1;      //we don't have 'p'
+    int isPort = -1; // we don't have port
+    int isPath = -1; //we don't have path
+
     char *path;
     char *host;
     char *port;
-    /* CHECK IT HERE*/
-    char *parameter = (char *)malloc(sizeof(char) * 1020); //with &
-    char *txt;
-    char *buf = (char *)malloc(sizeof(char) * 1020); //the get or post request
-    int intPort = 80;
+    char *parameter;  //with &
+    char *txt;        // Post body
+    char *buf;        //the request
+    int intPort = 80; // the defualt port
+    char *rest;
 
     for (int i = 1; i < argc; i++) /*for loop on all the string i = 1  -> bcz 0 is ./client*/
     {
         int inputLen = strlen(argv[i]); //the length of the word
-        char *token;
-        char *rest = (char *)malloc(sizeof(char) * inputLen);
+        rest = (char *)malloc(sizeof(char) * inputLen);
         strcpy(rest, argv[i]);
         char *ptr = strstr(rest, "http://"); //check if it has "https://" in the
         if (ptr != NULL)
@@ -95,6 +100,7 @@ int main(int argc, char *argv[])
 
             continue; // we have finished testing the argv[i] go to the second
         }
+    
         ptr = strstr(rest, "-p");
         if (ptr != NULL)
         {          //it's equal to -p
@@ -125,11 +131,23 @@ int main(int argc, char *argv[])
             if (i + 1 >= argc)
             {
                 printf("thre is no number");
+                exit(0);
             }
             if (argv[i + 1] != NULL)
             {
                 int myint1 = atoi(argv[i + 1]);
                 r = myint1; //there is a parameter
+                int parLen = 0;
+                for (int z = 0; z < r; z++)
+                {
+                    if (i + 1 + z >= argc)
+                    {
+                        printf("thre is no number");
+                    }
+                    parLen += strlen(argv[i + 2 + z]);
+                }
+
+                parameter = (char *)malloc(sizeof(char) * parLen); //with &
                 for (int j = 0; j < r; j++)
                 {
                     if (i + 1 >= argc)
@@ -149,9 +167,11 @@ int main(int argc, char *argv[])
                         strcat(parameter, argv[i + 1]);
                     }
                 }
+                printf("\nxx%sxx\n", parameter);
             }
         }
     }
+    free(rest);
 
     if (isPort != -1)
     {
@@ -170,12 +190,6 @@ int main(int argc, char *argv[])
     char rbuf[BUFLEN];
     struct sockaddr_in serv_addr;
     struct hostent *server;
-
-    if (argc <= 1)
-    {
-        fprintf(stderr, "Missing server name \n");
-        exit(EXIT_FAILURE);
-    }
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
@@ -202,6 +216,38 @@ int main(int argc, char *argv[])
     {
         printf("connected\n");
     }
+    int bufSize = 0;
+    if (p == -1) //get request
+    {
+        bufSize += strlen("GET ");
+    }
+    else
+    {
+        bufSize += strlen("POST "); //shof al text
+    }
+    bufSize += strlen(path);
+
+    bufSize += strlen(parameter);
+    bufSize += strlen(" HTTP/1.0\r\nHost: ");
+    bufSize += strlen(host);
+    // if(p != -1){
+    //     strcat(buf , )
+    // }
+    if (p != -1)
+    {
+        bufSize += strlen("\r\n");
+        bufSize += strlen("Content-length:");
+        char h[strlen(txt)];
+        sprintf(h, "%d", strlen(txt));
+        bufSize += strlen(h);
+    }
+    bufSize += strlen("\r\n\r\n");
+    if (p != -1)
+    {
+        bufSize += strlen(txt);
+    }
+
+    buf = (char *)malloc(sizeof(char) * bufSize);
 
     if (p == -1) //get request
     {
@@ -212,6 +258,7 @@ int main(int argc, char *argv[])
         strcat(buf, "POST "); //shof al text
     }
     strcat(buf, path);
+
     strcat(buf, parameter);
     strcat(buf, " HTTP/1.0\r\nHost: ");
     strcat(buf, host);
