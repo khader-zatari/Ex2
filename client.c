@@ -16,6 +16,7 @@ void error(char *str)
 {
     perror(str);
     exit(EXIT_FAILURE);
+    printf("\n");
 }
 
 int main(int argc, char *argv[])
@@ -220,19 +221,19 @@ int main(int argc, char *argv[])
     if (p != -1)
     {
         strcat(buf, "\r\n");
-        strcat(buf,"Content-length:");
-        char h [strlen(txt)] ; 
-        sprintf(h,"%d" , strlen(txt));
-        strcat(buf,h  );
-
+        strcat(buf, "Content-length:");
+        char h[strlen(txt)];
+        sprintf(h, "%d", strlen(txt));
+        strcat(buf, h);
     }
     strcat(buf, "\r\n\r\n");
     if (p != -1)
     {
         strcat(buf, txt);
     }
-    
-    printf("\n%s\n", buf);
+
+    printf("HTTP request =\n%s\nLEN = %d\n", buf, strlen(buf));
+
     //you should build a http request here   //we make a concatinate if it get or post then ....
     //rbuf is a the http massage-> GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
     //this should be the massage thn we write the rbuf to the server ""but i should make it geniric ""
@@ -245,7 +246,7 @@ int main(int argc, char *argv[])
     // for(){} , here we should read the massage using a loop
     do
     {
-        rc = read(sockfd, rbuf, BUFLEN); //read from the sever the massage
+        rc = read(sockfd, rbuf, strlen(buf)); //read from the sever the massage
         if (rc > 0)
         { //i should to the rbuf in the place of rc rbuf[rc]= '\0'
             printf("%s\n", rbuf);
@@ -255,6 +256,7 @@ int main(int argc, char *argv[])
             error("read() failed");
         //here the end of the for
     } while (rc > 0);
+    /* printf("\n Total received response bytes: %d\n",size); */
 
     close(sockfd);
 
