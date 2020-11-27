@@ -1,7 +1,3 @@
-// socket client multi clients
-// File: client.c
-// compile: gcc -Wall client.c -o client
-// run: ./client localhost
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,151 +7,201 @@
 #include <sys/socket.h> /* socket interface functions  */
 #include <netdb.h>      /* host to IP resolution            */
 #define BUFLEN 20       /* maximum response size     */
-
 void error(char *str)
 {
     perror(str);
     exit(EXIT_FAILURE);
     printf("\n");
 }
-
-int main(int argc, char *argv[])
+void argcError(int argc)
 {
     if (argc <= 1)
     {
         fprintf(stderr, "Missing server name \n");
         exit(EXIT_FAILURE);
     }
+}
+void UsageError()
+{
+    printf("Usage: client [-p <text>] [-r n < pr1=value1 pr2=value2 …>] <URL>");
+    exit(0);
+}
+
+void request(int argc, char *argv[])
+{
     int r = -1;      //we don't have 'r'
     int p = -1;      //we don't have 'p'
     int isPort = -1; // we don't have port
-    int isPath = -1; //we don't have path
 
-    char *path;
-    char *host;
-    char *port;
-    char *parameter;  //with &
+    char *path = NULL;
+    char *host = NULL;
+    char *port = NULL;
+    char *parameter = NULL;
+    int hostL = 0;
+    int portL = 0;
+    int pathL = 0;
     char *txt;        // Post body
     char *buf;        //the request
     int intPort = 80; // the defualt port
-    char *rest;
 
-    for (int i = 1; i < argc; i++) /*for loop on all the string i = 1  -> bcz 0 is ./client*/
+    int hostLength = 0;
+    int portLength = 0;
+
+    char *newHost = NULL;
+    char *newPort = NULL;
+
+    for (int i = 1; i < argc; i++)
     {
-        int inputLen = strlen(argv[i]); //the length of the word
-        rest = (char *)malloc(sizeof(char) * inputLen);
-        strcpy(rest, argv[i]);
-        char *ptr = strstr(rest, "http://"); //check if it has "https://" in the
+        char *ptr = strstr(argv[i], "http://");
         if (ptr != NULL)
         {
-            ptr = (ptr + 7);
-            host = ptr; //we have just the hos
+            ptr = ptr + 7;
+            host = ptr;
+            hostL = strlen(host);
+            char *ptr2 = strstr(host, ":");
 
-            char *secPtr = strstr(ptr, ":");
-            if (secPtr != NULL) //there is port
+            if (ptr2 != NULL)
             {
+                ptr2 = ptr2 + 1;
+                port = ptr2;
                 isPort = 1;
-                secPtr = secPtr + 1;
-                host = secPtr - ptr; //this is 14 i should just copy 14 char s
-                int num = (int *)host;
-                host = (char *)malloc(num);
-                strncpy(host, ptr, num); //-1
-                port = (char *)malloc(strlen(secPtr));
-                strncpy(port, secPtr, strlen(secPtr) - 1);
+                portL = strlen(port);
             }
-            else //there isn't a port
+            else
             {
-                secPtr = ptr;
+                ptr2 = host;
             }
-            char *thrdPtr = strstr(secPtr, "/");
-            if (thrdPtr != NULL) //there is a path
+
+            char *ptr3 = strstr(ptr2, "/");
+            if (ptr3 != NULL)
             {
-                isPath = 1;
-                path = thrdPtr;
-                if (isPort == 1)
-                {
-                    int num1 = thrdPtr - secPtr;
-                    port = (char *)malloc(num1);
-                    strncpy(port, secPtr, num1);
-                }
-                else
-                {
-                    host = thrdPtr - ptr;
-                    int num = (int *)host;
-                    host = (char *)malloc(num);
-                    strncpy(host, ptr, num); //-1
-                }
+
+                path = ptr3;
+                pathL = strlen(path);
             }
-            else //there isn't a path
+            else
             {
-                path = (char *)malloc(1); //i should make malloc
+                path = (char *)malloc(1);
                 strcpy(path, "/");
             }
-            if (host != NULL)
-                printf("the host is:%s\n", host);
+            hostLength = hostL - portL - 1; //-1
+            portLength = portL - pathL;
+            if (isPort == -1)
+            {
+                hostLength = hostL - pathL;
+            }
+            newHost = (char *)malloc(hostL);
+            if (newHost == NULL)
+            {
+                error("malloc error");
+            }
+            strncpy(newHost, host, hostLength);
+
             if (isPort != -1)
-                printf("the port is:%s\n", port);
-
-            printf("the path is:%s\n", path);
-
-            continue; // we have finished testing the argv[i] go to the second
+            {
+                newPort = (char *)malloc(portL);
+                if (newPort == NULL)
+                {
+                    error("malloc error");
+                }
+                strncpy(newPort, port, portLength);
+                //check if the port is a number
+                for (int j = 0; j < portLength; j++)
+                    if (newPort[j] >= '0' && newPort[j] <= '9')
+                    {
+                    }
+                    else
+                    {
+                        UsageError();
+                    }
+            }
+            continue;
         }
-    
-        ptr = strstr(rest, "-p");
+        ptr = strstr(argv[i], "-p");
+
         if (ptr != NULL)
-        {          //it's equal to -p
-            p = 1; // we have a post request
+        {
+            p = 1;
             if (i + 1 >= argc)
             {
-                printf("thre is no text");
+                UsageError();
             }
             if (argv[i + 1] != NULL)
             {
                 int txtLength = strlen(argv[i + 1]);
                 char *rest = (char *)malloc(sizeof(char) * txtLength);
+                if (rest == NULL)
+                {
+                    error("malloc error");
+                }
                 strcpy(rest, argv[i + 1]);
                 i = i + 1; //discard the text of the  -p
                 printf("%s\n", rest);
-                txt = rest; ///////////////////////
+                txt = rest;
             }
             else
             {
-                printf("there is no text");
+                UsageError();
             }
             continue;
         }
-        ptr = strstr(rest, "-r");
+        ptr = strstr(argv[i], "-r");
         if (ptr != NULL)
         {
+            r = 1;
 
             if (i + 1 >= argc)
             {
-                printf("thre is no number");
-                exit(0);
+                UsageError();
             }
             if (argv[i + 1] != NULL)
             {
+                for (int z = 0; z < strlen(argv[i + 1]); z++)
+                {
+                    if (argv[i + 1][z] >= '0' && argv[i + 1][z] <= '9')
+                    {
+                    }
+                    else
+                    {
+                        UsageError();
+                    }
+                }
                 int myint1 = atoi(argv[i + 1]);
                 r = myint1; //there is a parameter
                 int parLen = 0;
                 for (int z = 0; z < r; z++)
                 {
-                    if (i + 1 + z >= argc)
+                    if (i + 2 + z >= argc)
                     {
-                        printf("thre is no number");
+                        UsageError();
                     }
                     parLen += strlen(argv[i + 2 + z]);
                 }
 
                 parameter = (char *)malloc(sizeof(char) * parLen); //with &
+                if (parameter == NULL)
+                {
+                    error("malloc error");
+                }
                 for (int j = 0; j < r; j++)
                 {
                     if (i + 1 >= argc)
                     {
-                        printf("thre is no number");
+                        UsageError();
                     }
                     i = i + 1;
-
+                    //check if there is = in the parameters
+                    int parSize = strlen(argv[i + 1]);
+                    int thereIsEqual = -1;
+                    for (int y = 0; y < parSize - 1; y++)
+                    {
+                        if (argv[i + 1][y] == '=')
+                            thereIsEqual = 1;
+                    }
+                    if (thereIsEqual == -1)
+                    {
+                        UsageError();
+                    }
                     if (j == 0)
                     {
                         strcat(parameter, "?");
@@ -167,26 +213,49 @@ int main(int argc, char *argv[])
                         strcat(parameter, argv[i + 1]);
                     }
                 }
-                printf("\nxx%sxx\n", parameter);
             }
+            else
+            {
+                UsageError();
+            }
+
+            continue;
         }
+
+        // UsageError(); i should check the condition in the parameters there is an i not in it's place
     }
-    free(rest);
+
+    // if (newHost != NULL)
+    // {
+    //     printf("the Host isxx%sxx\n", newHost);
+    // }
+    // if (newPort != NULL)
+    // {
+    //     printf("the port isxx%sxx\n", newPort);
+    // }
+    // if (path != NULL)
+    // {
+    //     printf("the path are xx%sxx\n", path);
+    // }
+    // if (parameter != NULL)
+    // {
+    //     printf("the parameters are xx%sxx", parameter);
+    // }
 
     if (isPort != -1)
     {
-        intPort = atoi(port);
+        intPort = atoi(newPort);
     }
 
-    int reqSize; // the size of the request malloc
+    // the size of the request malloc
 
-    char *request; //i should malloc to the request the size of it should be the equal to the bottom -> make it geniric  .
-                   //we use it just for the write to the server
-                   //GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
+    //i should malloc to the request the size of it should be the equal to the bottom -> make it geniric  .
+    //we use it just for the write to the server
+    //GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
 
     int rc; ///* system calls return value storage
     int sockfd;
-    int num;
+
     char rbuf[BUFLEN];
     struct sockaddr_in serv_addr;
     struct hostent *server;
@@ -196,7 +265,7 @@ int main(int argc, char *argv[])
         error("socket failed");
 
     // connect to server
-    server = gethostbyname(host); //put the IP here
+    server = gethostbyname(newHost); //put the IP here
     //printf("\nww%sww",host);
     if (server == NULL)
     {
@@ -226,10 +295,10 @@ int main(int argc, char *argv[])
         bufSize += strlen("POST "); //shof al text
     }
     bufSize += strlen(path);
-
-    bufSize += strlen(parameter);
+    if (r != -1)
+        bufSize += strlen(parameter);
     bufSize += strlen(" HTTP/1.0\r\nHost: ");
-    bufSize += strlen(host);
+    bufSize += strlen(newHost);
     // if(p != -1){
     //     strcat(buf , )
     // }
@@ -237,8 +306,8 @@ int main(int argc, char *argv[])
     {
         bufSize += strlen("\r\n");
         bufSize += strlen("Content-length:");
-        char h[strlen(txt)];
-        sprintf(h, "%d", strlen(txt));
+        char *h = (char *)malloc(strlen(txt));
+        sprintf(h, "%ld", strlen(txt)); //d
         bufSize += strlen(h);
     }
     bufSize += strlen("\r\n\r\n");
@@ -248,29 +317,31 @@ int main(int argc, char *argv[])
     }
 
     buf = (char *)malloc(sizeof(char) * bufSize);
+    if (buf == NULL)
+    {
+        error("malloc error");
+    }
 
-    if (p == -1) //get request
+    if (p == -1)
     {
         strcat(buf, "GET ");
     }
     else
     {
-        strcat(buf, "POST "); //shof al text
+        strcat(buf, "POST ");
     }
     strcat(buf, path);
-
-    strcat(buf, parameter);
+    if (r != -1)
+        strcat(buf, parameter);
     strcat(buf, " HTTP/1.0\r\nHost: ");
-    strcat(buf, host);
-    // if(p != -1){
-    //     strcat(buf , )
-    // }
+    strcat(buf, newHost);
+
     if (p != -1)
     {
         strcat(buf, "\r\n");
         strcat(buf, "Content-length:");
         char h[strlen(txt)];
-        sprintf(h, "%d", strlen(txt));
+        sprintf(h, "%ld", strlen(txt)); //d
         strcat(buf, h);
     }
     strcat(buf, "\r\n\r\n");
@@ -279,33 +350,31 @@ int main(int argc, char *argv[])
         strcat(buf, txt);
     }
 
-    printf("HTTP request =\n%s\nLEN = %d\n", buf, strlen(buf));
+    printf("HTTP request =\n%s\nLEN = %ld\n", buf, strlen(buf)); //d
 
-    //you should build a http request here   //we make a concatinate if it get or post then ....
-    //rbuf is a the http massage-> GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
-    //this should be the massage thn we write the rbuf to the server ""but i should make it geniric ""
-    //make a function httpRequest(rbuf,argv);
-
-    //before the write i should print the request "the get request "
-    // send and then receive messages from the server
-    //  strcpy(buf,"GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n");
     write(sockfd, buf, strlen(buf) + 1); //send the massage to the server -> socket
-    // for(){} , here we should read the massage using a loop
+    int responseLength = 0;
     do
     {
         rc = read(sockfd, rbuf, strlen(buf)); //read from the sever the massage
-        if (rc > 0)
-        { //i should to the rbuf in the place of rc rbuf[rc]= '\0'
-            printf("%s\n", rbuf);
-            rbuf[rc] = '\0';
-        }
-        else
-            error("read() failed");
-        //here the end of the for
+                                              // if (rc > 0)
+                                              //  {
+        responseLength += strlen(rbuf);
+        printf("%s\n", rbuf);
+        rbuf[rc] = '\0';
+        // }
+        // else
+        //error("read() failed");
+
     } while (rc > 0);
-    /* printf("\n Total received response bytes: %d\n",size); */
+    printf("\n Total received response bytes: %d\n", responseLength);
 
     close(sockfd);
+}
 
+int main(int argc, char *argv[])
+{
+    argcError(argc);
+    request(argc, argv);
     return EXIT_SUCCESS;
 }
