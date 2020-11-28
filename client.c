@@ -7,12 +7,14 @@
 #include <sys/socket.h> /* socket interface functions  */
 #include <netdb.h>      /* host to IP resolution            */
 #define BUFLEN 20       /* maximum response size     */
+/*system call error*/
 void error(char *str)
 {
     perror(str);
     exit(EXIT_FAILURE);
     printf("\n");
 }
+/*too little argument*/
 void argcError(int argc)
 {
     if (argc <= 1)
@@ -21,18 +23,18 @@ void argcError(int argc)
         exit(EXIT_FAILURE);
     }
 }
+/*usage error*/
 void UsageError()
 {
     printf("Usage: client [-p <text>] [-r n < pr1=value1 pr2=value2 …>] <URL>");
     exit(0);
 }
-
+/*form the http request and send it to the server*/
 void request(int argc, char *argv[])
 {
-    int r = -1;      //we don't have 'r'
-    int p = -1;      //we don't have 'p'
-    int isPort = -1; // we don't have port
-
+    int r = -1;
+    int p = -1;
+    int isPort = -1;
     char *path = NULL;
     char *host = NULL;
     char *port = NULL;
@@ -40,19 +42,18 @@ void request(int argc, char *argv[])
     int hostL = 0;
     int portL = 0;
     int pathL = 0;
-    char *txt;        // Post body
-    char *buf;        //the request
-    int intPort = 80; // the defualt port
-
+    char *txt;
+    char *buf;
+    int intPort = 80;
     int hostLength = 0;
     int portLength = 0;
-
     char *newHost = NULL;
     char *newPort = NULL;
 
     for (int i = 1; i < argc; i++)
     {
         char *ptr = strstr(argv[i], "http://");
+        /*if we have found the server name*/
         if (ptr != NULL)
         {
             ptr = ptr + 7;
@@ -105,8 +106,9 @@ void request(int argc, char *argv[])
                     error("malloc error");
                 }
                 strncpy(newPort, port, portLength);
-                //check if the port is a number
+                /*check if the port is a number*/
                 for (int j = 0; j < portLength; j++)
+                {
                     if (newPort[j] >= '0' && newPort[j] <= '9')
                     {
                     }
@@ -114,11 +116,13 @@ void request(int argc, char *argv[])
                     {
                         UsageError();
                     }
+                }
             }
             continue;
         }
-        ptr = strstr(argv[i], "-p");
 
+        ptr = strstr(argv[i], "-p");
+        /*if we have a post request*/
         if (ptr != NULL)
         {
             p = 1;
@@ -146,6 +150,7 @@ void request(int argc, char *argv[])
             continue;
         }
         ptr = strstr(argv[i], "-r");
+        /*if we have a parameters*/
         if (ptr != NULL)
         {
             r = 1;
@@ -241,32 +246,26 @@ void request(int argc, char *argv[])
     // {
     //     printf("the parameters are xx%sxx", parameter);
     // }
-
+    /*cover the string number into integar*/
     if (isPort != -1)
     {
         intPort = atoi(newPort);
     }
-
-    // the size of the request malloc
-
-    //i should malloc to the request the size of it should be the equal to the bottom -> make it geniric  .
-    //we use it just for the write to the server
-    //GET /index.html HTTP/1.0\r\nHost: www.jce.ac.il\r\n\r\n
-
-    int rc; ///* system calls return value storage
+    int rc;
     int sockfd;
-
     char rbuf[BUFLEN];
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
+    {
         error("socket failed");
+    }
 
     // connect to server
-    server = gethostbyname(newHost); //put the IP here
-    //printf("\nww%sww",host);
+    server = gethostbyname(newHost);
+
     if (server == NULL)
     {
         fprintf(stderr, "ERROR, no such host\n");
@@ -275,8 +274,7 @@ void request(int argc, char *argv[])
 
     serv_addr.sin_family = AF_INET;
     bcopy((char *)server->h_addr_list[0], (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-    serv_addr.sin_port = htons(intPort); //put the port here
-
+    serv_addr.sin_port = htons(intPort);
     rc = connect(sockfd, (const struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
     if (rc < 0)
@@ -285,6 +283,7 @@ void request(int argc, char *argv[])
     {
         printf("connected\n");
     }
+    /*calculate the request byte size*/
     int bufSize = 0;
     if (p == -1) //get request
     {
@@ -299,9 +298,6 @@ void request(int argc, char *argv[])
         bufSize += strlen(parameter);
     bufSize += strlen(" HTTP/1.0\r\nHost: ");
     bufSize += strlen(newHost);
-    // if(p != -1){
-    //     strcat(buf , )
-    // }
     if (p != -1)
     {
         bufSize += strlen("\r\n");
@@ -321,7 +317,7 @@ void request(int argc, char *argv[])
     {
         error("malloc error");
     }
-
+    /*concatinate the request*/
     if (p == -1)
     {
         strcat(buf, "GET ");
@@ -354,9 +350,10 @@ void request(int argc, char *argv[])
 
     write(sockfd, buf, strlen(buf) + 1); //send the massage to the server -> socket
     int responseLength = 0;
+    /*read from the sever the massage*/
     do
     {
-        rc = read(sockfd, rbuf, strlen(buf)); //read from the sever the massage
+        rc = read(sockfd, rbuf, strlen(buf)); 
                                               // if (rc > 0)
                                               //  {
         responseLength += strlen(rbuf);
