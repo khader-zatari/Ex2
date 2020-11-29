@@ -140,7 +140,7 @@ void request(int argc, char *argv[])
                 }
                 strcpy(rest, argv[i + 1]);
                 i = i + 1; //discard the text of the  -p
-                printf("%s\n", rest);
+                //printf("%s\n", rest);
                 txt = rest;
             }
             else
@@ -202,6 +202,8 @@ void request(int argc, char *argv[])
                     {
                         if (argv[i + 1][y] == '=')
                             thereIsEqual = 1;
+                        if (argv[i + 1][0] == '=' || argv[i + 1][parSize - 1] == '=')
+                            UsageError();
                     }
                     if (thereIsEqual == -1)
                     {
@@ -226,8 +228,9 @@ void request(int argc, char *argv[])
 
             continue;
         }
-
-        // UsageError(); i should check the condition in the parameters there is an i not in it's place
+        if (i != argc - 1)
+            UsageError();
+        //  i should check the condition in the parameters there is an i not in it's place
     }
 
     // if (newHost != NULL)
@@ -353,9 +356,9 @@ void request(int argc, char *argv[])
     /*read from the sever the massage*/
     do
     {
-        rc = read(sockfd, rbuf, strlen(buf)); 
-                                              // if (rc > 0)
-                                              //  {
+        rc = read(sockfd, rbuf, strlen(buf));
+        // if (rc > 0)
+        //  {
         responseLength += strlen(rbuf);
         printf("%s\n", rbuf);
         rbuf[rc] = '\0';
