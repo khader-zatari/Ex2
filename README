@@ -1,0 +1,25 @@
+README
+Name:Mohammad Khader Zatari
+Id:314929811
+
+Exercise 2 - Client side http
+
+===Description ===
+
+Program files:
+files:client.c - file that make an http request from the client side
+
+funcation:
+    error - it takes an massage and it print it when there is an error and it exit the program
+    argcError - if there isn't enough parameters
+    UsageError() - error in writing the query in
+    Nfree() - free the propriet allocated part in the memory
+    request - it parcing the string and making a socket and send an http request to the requsted host 
+     
+
+
+----------
+
+
+
+
