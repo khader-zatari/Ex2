@@ -26,7 +26,7 @@ void argcError(int argc)
 /*usage error*/
 void UsageError()
 {
-    printf("Usage: client [-p <text>] [-r n < pr1=value1 pr2=value2 …>] <URL>");
+    printf("Usage: client [-p <text>] [-r n < pr1=value1 pr2=value2 …>] <URL>\n");
     exit(0);
 }
 void Nfree(char *s)
